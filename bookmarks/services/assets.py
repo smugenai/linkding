@@ -21,6 +21,22 @@ MAX_ASSET_FILENAME_LENGTH = 192
 logger = logging.getLogger(__name__)
 
 
+def asset_file_path(name_or_asset) -> str:
+    """Return the absolute filesystem path for a bookmark asset.
+
+    Accepts either a raw filename string or a :class:`BookmarkAsset` (in which
+    case its ``file`` attribute is used). Centralising this join avoids the
+    scattered ``os.path.join(settings.LD_ASSET_FOLDER, ...)`` calls that
+    previously appeared in views, services and models.
+    """
+    filename = (
+        name_or_asset.file
+        if isinstance(name_or_asset, BookmarkAsset)
+        else name_or_asset
+    )
+    return os.path.join(settings.LD_ASSET_FOLDER, filename)
+
+
 class PdfTooLargeError(Exception):
     pass
 
@@ -55,12 +71,12 @@ def create_snapshot(asset: BookmarkAsset):
 def _create_html_snapshot(asset: BookmarkAsset):
     # Create snapshot into temporary file
     temp_filename = _generate_asset_filename(asset, asset.bookmark.url, "tmp")
-    temp_filepath = os.path.join(settings.LD_ASSET_FOLDER, temp_filename)
+    temp_filepath = asset_file_path(temp_filename)
     singlefile.create_snapshot(asset.bookmark.url, temp_filepath)
 
     # Store as gzip in asset folder
     filename = _generate_asset_filename(asset, asset.bookmark.url, "html.gz")
-    filepath = os.path.join(settings.LD_ASSET_FOLDER, filename)
+    filepath = asset_file_path(filename)
     with (
         open(temp_filepath, "rb") as temp_file,
         gzip.open(filepath, "wb") as gz_file,
@@ -91,7 +107,7 @@ def _create_pdf_snapshot(asset: BookmarkAsset):
 
     # Download PDF to temporary file
     temp_filename = _generate_asset_filename(asset, url, "tmp")
-    temp_filepath = os.path.join(settings.LD_ASSET_FOLDER, temp_filename)
+    temp_filepath = asset_file_path(temp_filename)
 
     headers = fake_request_headers()
     timeout = 60
@@ -117,7 +133,7 @@ def _create_pdf_snapshot(asset: BookmarkAsset):
 
     # Store as gzip in asset folder
     filename = _generate_asset_filename(asset, url, "pdf.gz")
-    filepath = os.path.join(settings.LD_ASSET_FOLDER, filename)
+    filepath = asset_file_path(filename)
     with (
         open(temp_filepath, "rb") as temp_file,
         gzip.open(filepath, "wb") as gz_file,
@@ -145,7 +161,7 @@ def _create_pdf_snapshot(asset: BookmarkAsset):
 def upload_snapshot(bookmark: Bookmark, html: bytes):
     asset = create_snapshot_asset(bookmark)
     filename = _generate_asset_filename(asset, asset.bookmark.url, "html.gz")
-    filepath = os.path.join(settings.LD_ASSET_FOLDER, filename)
+    filepath = asset_file_path(filename)
 
     with gzip.open(filepath, "wb") as gz_file:
         gz_file.write(html)
@@ -185,7 +201,7 @@ def upload_asset(bookmark: Bookmark, upload_file: UploadedFile):
             filename = _generate_asset_filename(
                 asset, name, extension.lstrip(".") + ".gz"
             )
-            filepath = os.path.join(settings.LD_ASSET_FOLDER, filename)
+            filepath = asset_file_path(filename)
             with gzip.open(filepath, "wb", compresslevel=9) as f:
                 for chunk in upload_file.chunks():
                     f.write(chunk)
@@ -194,7 +210,7 @@ def upload_asset(bookmark: Bookmark, upload_file: UploadedFile):
             asset.file_size = os.path.getsize(filepath)
         else:
             filename = _generate_asset_filename(asset, name, extension.lstrip("."))
-            filepath = os.path.join(settings.LD_ASSET_FOLDER, filename)
+            filepath = asset_file_path(filename)
             with open(filepath, "wb") as f:
                 for chunk in upload_file.chunks():
                     f.write(chunk)

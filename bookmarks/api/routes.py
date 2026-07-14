@@ -192,7 +192,7 @@ class BookmarkAssetViewSet(
     def download(self, request: HttpRequest, bookmark_id, pk):
         asset = self.get_object()
         try:
-            file_path = os.path.join(settings.LD_ASSET_FOLDER, asset.file)
+            file_path = assets.asset_file_path(asset)
             content_type = asset.content_type
             file_stream = (
                 gzip.GzipFile(file_path, mode="rb")

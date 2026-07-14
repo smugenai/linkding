@@ -5,6 +5,7 @@ from django.test import TestCase
 
 from bookmarks.models import BookmarkAsset
 from bookmarks.services import bookmarks
+from bookmarks.services.assets import asset_file_path
 from bookmarks.tests.helpers import BookmarkFactoryMixin
 
 
@@ -110,3 +111,11 @@ class BookmarkAssetsTestCase(TestCase, BookmarkFactoryMixin):
             display_name="document.txt",
         )
         self.assertEqual(asset.download_name, "document.txt")
+
+    def test_asset_file_path_accepts_filename_or_asset(self):
+        bookmark = self.setup_bookmark()
+        asset = self.setup_asset(bookmark=bookmark, file="hello.html.gz")
+
+        expected = os.path.join(settings.LD_ASSET_FOLDER, "hello.html.gz")
+        self.assertEqual(asset_file_path("hello.html.gz"), expected)
+        self.assertEqual(asset_file_path(asset), expected)
