@@ -60,18 +60,33 @@ class BookmarkViewSet(
         user = self.request.user
         search = BookmarkSearch.from_request(self.request, self.request.GET)
         if self.action == "list":
-            return queries.query_bookmarks(user, user.profile, search)
+            queryset = queries.query_bookmarks(user, user.profile, search)
         elif self.action == "archived":
-            return queries.query_archived_bookmarks(user, user.profile, search)
+            queryset = queries.query_archived_bookmarks(user, user.profile, search)
         elif self.action == "shared":
-            user = User.objects.filter(username=search.user).first()
+            shared_user = User.objects.filter(username=search.user).first()
             public_only = not self.request.user.is_authenticated
-            return queries.query_shared_bookmarks(
-                user, self.request.user_profile, search, public_only
+            queryset = queries.query_shared_bookmarks(
+                shared_user, self.request.user_profile, search, public_only
             )
+        else:
+            # For single entity actions return user owned bookmarks
+            return Bookmark.objects.all().filter(owner=user)
 
-        # For single entity actions return user owned bookmarks
-        return Bookmark.objects.all().filter(owner=user)
+        # Optional filter that lets an admin scope the response to a specific
+        # username. Handy when running dashboards that federate across
+        # multiple linkding accounts.
+        created_by = self.request.GET.get("created_by")
+        if created_by:
+            queryset = queryset.filter(owner__username=created_by)
+
+        # Optional filter that keeps only bookmarks added after the given
+        # ISO-8601 date, e.g. ?added_after=2026-01-01.
+        added_after = self.request.GET.get("added_after")
+        if added_after:
+            queryset = queryset.filter(date_added__gte=added_after)
+
+        return queryset
 
     def get_serializer_context(self):
         disable_scraping = "disable_scraping" in self.request.GET
