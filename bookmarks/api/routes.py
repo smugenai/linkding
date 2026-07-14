@@ -1,9 +1,11 @@
+import csv
 import gzip
+import io
 import logging
 import os
 
 from django.conf import settings
-from django.http import Http404, StreamingHttpResponse
+from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
@@ -261,6 +263,35 @@ class TagViewSet(
 
     def get_serializer_context(self):
         return {"user": self.request.user}
+
+    @action(methods=["get"], detail=False)
+    def export(self, request: HttpRequest):
+        """Return the caller's tags as a CSV download.
+
+        Columns: id, name, date_added, bookmark_count. Ordered by name.
+        """
+        tags = (
+            Tag.objects.filter(owner=request.user)
+            .order_by("name")
+            .prefetch_related("bookmark_set")
+        )
+
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(["id", "name", "date_added", "bookmark_count"])
+        for tag in tags:
+            writer.writerow(
+                [
+                    tag.id,
+                    tag.name,
+                    tag.date_added.isoformat(),
+                    tag.bookmark_set.count(),
+                ]
+            )
+
+        response = HttpResponse(buffer.getvalue(), content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="linkding-tags.csv"'
+        return response
 
 
 class UserViewSet(viewsets.GenericViewSet):
