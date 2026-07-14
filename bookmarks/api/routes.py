@@ -135,6 +135,16 @@ class BookmarkViewSet(
             status=status.HTTP_200_OK,
         )
 
+    @action(methods=["post"], detail=False, url_path="bulk_delete")
+    def bulk_delete(self, request: HttpRequest):
+        """Delete a list of bookmarks in a single request.
+
+        Body: ``{"bookmark_ids": [1, 2, 3]}``.
+        """
+        bookmark_ids = request.data.get("bookmark_ids") or []
+        bookmarks.bulk_delete_bookmarks_fast(bookmark_ids, request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     @action(methods=["post"], detail=False)
     def singlefile(self, request: HttpRequest):
         if settings.LD_DISABLE_ASSET_UPLOAD:
