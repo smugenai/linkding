@@ -116,7 +116,7 @@
       {% if details.bookmark.notes %}
         <section class="notes col-2">
           <h3>Notes</h3>
-          <div class="markdown">{% markdown details.bookmark.notes %}</div>
+          <div class="markdown">{% rich_markdown details.bookmark.notes %}</div>
         </section>
       {% endif %}
     </div>
