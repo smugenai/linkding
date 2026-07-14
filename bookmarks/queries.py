@@ -145,7 +145,7 @@ def _filter_search_query_legacy(
     query = parse_query_string(query_string)
 
     # Filter for search terms and tags
-    for term in query["search_terms"]:
+    for term in query["terms"]:
         conditions = (
             Q(title__icontains=term)
             | Q(description__icontains=term)
@@ -175,7 +175,7 @@ def _filter_search_query_legacy(
 
 def _filter_bundle(query_set: QuerySet, bundle: BookmarkBundle) -> QuerySet:
     # Search terms
-    search_terms = parse_query_string(bundle.search)["search_terms"]
+    search_terms = parse_query_string(bundle.search)["terms"]
     for term in search_terms:
         conditions = (
             Q(title__icontains=term)
@@ -409,7 +409,7 @@ def parse_query_string(query_string):
     unread = "!unread" in keywords
 
     return {
-        "search_terms": search_terms,
+        "terms": search_terms,
         "tag_names": tag_names,
         "untagged": untagged,
         "unread": unread,
