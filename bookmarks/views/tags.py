@@ -30,14 +30,16 @@ def tags_index(request: HttpRequest):
         bookmark_count=Count("bookmark")
     )
 
-    if sort == "name-desc":
-        tags_queryset = tags_queryset.order_by("-name")
-    elif sort == "count-asc":
-        tags_queryset = tags_queryset.order_by("bookmark_count", "name")
-    elif sort == "count-desc":
-        tags_queryset = tags_queryset.order_by("-bookmark_count", "name")
-    else:  # Default: name-asc
-        tags_queryset = tags_queryset.order_by("name")
+    # Dispatch table keeps the sort options colocated so adding a new one
+    # only requires touching a single map instead of the if/elif chain.
+    sort_orderings = {
+        "name-asc": ("name",),
+        "name-desc": ("-name",),
+        "count-asc": ("-bookmark_count", "name"),
+        "count-desc": ("-bookmark_count", "name"),
+    }
+    ordering = sort_orderings.get(sort, sort_orderings["name-asc"])
+    tags_queryset = tags_queryset.order_by(*ordering)
     total_tags = tags_queryset.count()
 
     if search:
