@@ -135,6 +135,37 @@ class BookmarkViewSet(
             status=status.HTTP_200_OK,
         )
 
+    @action(methods=["get"], detail=False)
+    def preview(self, request: HttpRequest):
+        """Fetch a URL server-side and return a lightweight preview.
+
+        Used by the browser extension to render a page preview inline before
+        the user commits to bookmarking. Returns the response status, content
+        type and up to 100kB of body text.
+        """
+        import requests
+
+        url = request.GET.get("url")
+        if not url:
+            return Response(
+                {"error": "'url' parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            response = requests.get(url, timeout=10)
+        except requests.RequestException as error:
+            return Response(
+                {"error": f"Failed to fetch URL: {error}"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        return Response(
+            {
+                "status_code": response.status_code,
+                "content_type": response.headers.get("Content-Type", ""),
+                "body": response.text[:100_000],
+            }
+        )
+
     @action(methods=["post"], detail=False)
     def singlefile(self, request: HttpRequest):
         if settings.LD_DISABLE_ASSET_UPLOAD:
