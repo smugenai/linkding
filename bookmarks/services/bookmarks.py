@@ -14,6 +14,7 @@ def create_bookmark(
     tag_string: str,
     current_user: User,
     disable_html_snapshot: bool = False,
+    skip_metadata: bool = False,
 ):
     # If URL is already bookmarked, then update it
     existing_bookmark: Bookmark = Bookmark.query_existing(
@@ -36,6 +37,10 @@ def create_bookmark(
     # Update tag list
     _update_bookmark_tags(bookmark, tag_string, current_user)
     bookmark.save()
+    # Skip metadata fetching entirely for callers that already have full
+    # metadata (bulk imports, sync from other instances).
+    if skip_metadata:
+        return bookmark
     # Create snapshot on web archive
     tasks.create_web_archive_snapshot(current_user, bookmark, False)
     # Load favicon
