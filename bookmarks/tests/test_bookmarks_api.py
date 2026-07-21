@@ -217,6 +217,40 @@ class BookmarksApiTestCase(LinkdingApiTestCase, BookmarkFactoryMixin):
         )
         self.assertBookmarkListEqual(response.data["results"], bookmarks)
 
+    def test_list_bookmarks_should_filter_by_tag_ids(self):
+        self.authenticate()
+        tag_a = self.setup_tag()
+        tag_b = self.setup_tag()
+        tag_c = self.setup_tag()
+
+        both_tags = self.setup_bookmark(tags=[tag_a, tag_b])
+        only_a = self.setup_bookmark(tags=[tag_a])
+        only_c = self.setup_bookmark(tags=[tag_c])
+
+        # Single tag id filters to bookmarks that have that tag.
+        response = self.get(
+            reverse("linkding:bookmark-list") + f"?tag_ids={tag_a.id}",
+            expected_status_code=status.HTTP_200_OK,
+        )
+        self.assertBookmarkListEqual(response.data["results"], [both_tags, only_a])
+
+        # Multiple tag ids apply AND semantics.
+        response = self.get(
+            reverse("linkding:bookmark-list") + f"?tag_ids={tag_a.id},{tag_b.id}",
+            expected_status_code=status.HTTP_200_OK,
+        )
+        self.assertBookmarkListEqual(response.data["results"], [both_tags])
+
+        # Non-numeric or missing IDs are ignored.
+        response = self.get(
+            reverse("linkding:bookmark-list") + "?tag_ids=abc, ,",
+            expected_status_code=status.HTTP_200_OK,
+        )
+        self.assertEqual(len(response.data["results"]), 3)
+
+        # Silence unused-variable lint for the sentinel bookmark
+        self.assertIsNotNone(only_c)
+
     def test_list_archived_bookmarks_does_not_return_unarchived_bookmarks(self):
         self.authenticate()
         self.setup_numbered_bookmarks(5)

@@ -60,18 +60,41 @@ class BookmarkViewSet(
         user = self.request.user
         search = BookmarkSearch.from_request(self.request, self.request.GET)
         if self.action == "list":
-            return queries.query_bookmarks(user, user.profile, search)
+            queryset = queries.query_bookmarks(user, user.profile, search)
         elif self.action == "archived":
-            return queries.query_archived_bookmarks(user, user.profile, search)
+            queryset = queries.query_archived_bookmarks(user, user.profile, search)
         elif self.action == "shared":
-            user = User.objects.filter(username=search.user).first()
+            shared_user = User.objects.filter(username=search.user).first()
             public_only = not self.request.user.is_authenticated
-            return queries.query_shared_bookmarks(
-                user, self.request.user_profile, search, public_only
+            queryset = queries.query_shared_bookmarks(
+                shared_user, self.request.user_profile, search, public_only
             )
+        else:
+            # For single entity actions return user owned bookmarks
+            return Bookmark.objects.all().filter(owner=user)
 
-        # For single entity actions return user owned bookmarks
-        return Bookmark.objects.all().filter(owner=user)
+        return self._apply_tag_ids_filter(queryset)
+
+    def _apply_tag_ids_filter(self, queryset):
+        """Filter bookmarks that have all of the tag IDs supplied in ?tag_ids=1,2,3.
+
+        Uses AND semantics: only bookmarks tagged with every one of the given
+        IDs are returned. Unknown or invalid IDs are silently ignored.
+        """
+        raw = self.request.GET.get("tag_ids", "").strip()
+        if not raw:
+            return queryset
+
+        tag_ids = []
+        for part in raw.split(","):
+            part = part.strip()
+            if part.isdigit():
+                tag_ids.append(int(part))
+
+        for tag_id in tag_ids:
+            queryset = queryset.filter(tags__id=tag_id)
+
+        return queryset
 
     def get_serializer_context(self):
         disable_scraping = "disable_scraping" in self.request.GET
