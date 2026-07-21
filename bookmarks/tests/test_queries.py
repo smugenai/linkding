@@ -1214,6 +1214,37 @@ class QueriesBasicTestCase(TestCase, BookmarkFactoryMixin):
         actual_effective_titles = [b.resolved_title for b in query]
         self.assertEqual(expected_effective_titles, actual_effective_titles)
 
+    def test_sort_by_date_modified_asc(self):
+        search = BookmarkSearch(sort=BookmarkSearch.SORT_MODIFIED_ASC)
+
+        bookmarks = [self.setup_bookmark() for _ in range(4)]
+        # Reorder date_modified independently of insertion order
+        for bookmark, month in zip(bookmarks, [3, 1, 4, 2]):
+            bookmark.date_modified = timezone.datetime(
+                2024, month, 1, tzinfo=datetime.UTC
+            )
+            bookmark.save()
+
+        query = queries.query_bookmarks(self.user, self.profile, search)
+
+        expected = sorted(bookmarks, key=lambda b: b.date_modified)
+        self.assertEqual([b.id for b in expected], [b.id for b in query])
+
+    def test_sort_by_date_modified_desc(self):
+        search = BookmarkSearch(sort=BookmarkSearch.SORT_MODIFIED_DESC)
+
+        bookmarks = [self.setup_bookmark() for _ in range(4)]
+        for bookmark, month in zip(bookmarks, [3, 1, 4, 2]):
+            bookmark.date_modified = timezone.datetime(
+                2024, month, 1, tzinfo=datetime.UTC
+            )
+            bookmark.save()
+
+        query = queries.query_bookmarks(self.user, self.profile, search)
+
+        expected = sorted(bookmarks, key=lambda b: b.date_modified, reverse=True)
+        self.assertEqual([b.id for b in expected], [b.id for b in query])
+
     def test_query_bookmarks_filter_modified_since(self):
         # Create bookmarks with different modification dates
         older_bookmark = self.setup_bookmark(title="old bookmark")
