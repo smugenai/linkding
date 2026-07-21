@@ -84,7 +84,7 @@ def enhance_with_website_metadata(bookmark: Bookmark):
     bookmark.save()
 
 
-def archive_bookmark(bookmark: Bookmark):
+def archive_bookmark_instance(bookmark: Bookmark):
     bookmark.is_archived = True
     bookmark.date_modified = timezone.now()
     bookmark.save()

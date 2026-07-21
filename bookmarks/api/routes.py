@@ -119,7 +119,7 @@ class BookmarkViewSet(
     @action(methods=["post"], detail=True)
     def archive(self, request: HttpRequest, pk):
         bookmark = self.get_object()
-        bookmarks.archive_bookmark(bookmark)
+        bookmarks.archive_bookmark_instance(bookmark)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=["post"], detail=True)
