@@ -421,3 +421,11 @@ def parse_query_string(query_string):
         "untagged": untagged,
         "unread": unread,
     }
+
+
+def count_bookmarks_for_user(user):
+    """Read-only helper: number of bookmarks owned by ``user``.
+
+    Small additive utility on the queries module (AL test).
+    """
+    return Bookmark.objects.filter(owner=user).count()
