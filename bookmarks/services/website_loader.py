@@ -1,4 +1,5 @@
 import logging
+import urllib.parse
 from dataclasses import dataclass
 from functools import lru_cache
 from urllib.parse import urljoin
@@ -9,6 +10,35 @@ from charset_normalizer import from_bytes
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
+
+def canonicalize_url(url: str) -> str:
+    """Return a canonical form of ``url`` suitable for the preview cache key.
+
+    Strips whitespace, lowercases the scheme + host, drops trailing slashes
+    from the path, and sorts query parameters so that trivially different
+    URLs pointing at the same resource collapse to the same cache key.
+    """
+    if not url or not isinstance(url, str):
+        return ""
+    url = url.strip()
+    if not url:
+        return ""
+
+    parsed = urllib.parse.urlparse(url)
+    scheme = parsed.scheme.lower()
+    netloc = parsed.hostname.lower() if parsed.hostname else ""
+    if parsed.port:
+        netloc += f":{parsed.port}"
+    path = parsed.path.rstrip("/") if parsed.path else ""
+
+    query = ""
+    if parsed.query:
+        query_params = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+        query_params.sort()
+        query = urllib.parse.urlencode(query_params)
+
+    return urllib.parse.urlunparse((scheme, netloc, path, "", query, ""))
 
 
 @dataclass
@@ -28,9 +58,10 @@ class WebsiteMetadata:
 
 
 def load_website_metadata(url: str, ignore_cache: bool = False):
+    cache_key = canonicalize_url(url) or url
     if ignore_cache:
         return _load_website_metadata(url)
-    return _load_website_metadata_cached(url)
+    return _load_website_metadata_cached(cache_key)
 
 
 # Caching metadata avoids scraping again when saving bookmarks, in case the
