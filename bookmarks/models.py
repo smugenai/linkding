@@ -158,7 +158,9 @@ class BookmarkAsset(models.Model):
     def save(self, *args, **kwargs):
         if self.file:
             try:
-                file_path = os.path.join(settings.LD_ASSET_FOLDER, self.file)
+                from bookmarks.services.assets import asset_file_path
+
+                file_path = asset_file_path(self.file)
                 if os.path.isfile(file_path):
                     self.file_size = os.path.getsize(file_path)
             except Exception:
@@ -172,7 +174,9 @@ class BookmarkAsset(models.Model):
 @receiver(post_delete, sender=BookmarkAsset)
 def bookmark_asset_deleted(sender, instance, **kwargs):
     if instance.file:
-        filepath = os.path.join(settings.LD_ASSET_FOLDER, instance.file)
+        from bookmarks.services.assets import asset_file_path
+
+        filepath = asset_file_path(instance.file)
         if os.path.isfile(filepath):
             try:
                 os.remove(filepath)

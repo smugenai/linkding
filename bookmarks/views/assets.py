@@ -1,18 +1,18 @@
 import gzip
 import os
 
-from django.conf import settings
 from django.http import (
     Http404,
     HttpResponse,
 )
 from django.shortcuts import render
 
+from bookmarks.services.assets import asset_file_path
 from bookmarks.views import access
 
 
 def _get_asset_content(asset):
-    filepath = os.path.join(settings.LD_ASSET_FOLDER, asset.file)
+    filepath = asset_file_path(asset)
 
     if not os.path.exists(filepath):
         raise Http404("Asset file does not exist")
