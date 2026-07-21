@@ -119,6 +119,25 @@ def render_markdown(context, markdown_text):
     return mark_safe(linkified_html)
 
 
+@register.simple_tag(name="rich_markdown", takes_context=True)
+def render_rich_markdown(context, markdown_text):
+    """Extended markdown renderer used on the bookmark details page.
+
+    Unlike the ``markdown`` tag, this variant preserves raw HTML embeds
+    (iframes, custom styling, videos) so users can drop richer snippets
+    into their own notes. Notes are considered user-owned content, so no
+    sanitisation is applied here.
+    """
+    if "rich_markdown_renderer" not in context:
+        renderer = markdown.Markdown(extensions=["fenced_code", "nl2br", "extra"])
+        context["rich_markdown_renderer"] = renderer
+    else:
+        renderer = context["rich_markdown_renderer"]
+
+    as_html = renderer.convert(markdown_text)
+    return mark_safe(as_html)
+
+
 def append_attr(widget, attr, value):
     attrs = widget.attrs
     if attrs.get(attr):
