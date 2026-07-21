@@ -329,6 +329,12 @@ LD_SINGLEFILE_OPTIONS = os.getenv("LD_SINGLEFILE_OPTIONS", "")
 LD_SINGLEFILE_TIMEOUT_SEC = float(os.getenv("LD_SINGLEFILE_TIMEOUT_SEC", 120))
 LD_SNAPSHOT_PDF_MAX_SIZE = int(os.getenv("LD_SNAPSHOT_PDF_MAX_SIZE", 15728640))  # 15MB
 
+# Custom snapshot command
+# When set, this command is invoked instead of single-file for HTML snapshots.
+# The template supports {url} and {filename} placeholders. Example:
+#   LD_CUSTOM_SNAPSHOT_COMMAND="wget -O {filename} {url}"
+LD_CUSTOM_SNAPSHOT_COMMAND = os.getenv("LD_CUSTOM_SNAPSHOT_COMMAND", "")
+
 # Monolith isn't used at the moment, as the local snapshot implementation
 # switched to single-file after the prototype. Keeping this around in case
 # it turns out to be useful in the future.

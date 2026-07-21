@@ -15,6 +15,27 @@ logger = logging.getLogger(__name__)
 
 
 def create_snapshot(url: str, filepath: str):
+    # If a custom snapshot command is configured, delegate to it. This lets
+    # operators plug in tools like wget, curl or their own scripts instead of
+    # running single-file.
+    custom_command = settings.LD_CUSTOM_SNAPSHOT_COMMAND
+    if custom_command:
+        rendered = custom_command.format(url=url, filename=filepath)
+        try:
+            subprocess.run(
+                rendered,
+                shell=True,
+                timeout=settings.LD_SINGLEFILE_TIMEOUT_SEC,
+                check=True,
+            )
+        except subprocess.CalledProcessError as error:
+            raise SingleFileError(
+                f"Custom snapshot command failed: {error.stderr}"
+            ) from error
+        if not os.path.exists(filepath):
+            raise SingleFileError("Failed to create snapshot")
+        return
+
     singlefile_path = settings.LD_SINGLEFILE_PATH
 
     # parse options to list of arguments
