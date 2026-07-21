@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class Tag(models.Model):
     name = models.CharField(max_length=64)
+    color = models.CharField(max_length=7, default="#3b82f6")
     date_added = models.DateTimeField()
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
 
