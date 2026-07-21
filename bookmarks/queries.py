@@ -44,16 +44,26 @@ def query_archived_bookmarks(
     return _base_bookmarks_query(user, profile, search).filter(is_archived=True)
 
 
+def _shared_bookmark_visibility(public_only: bool, prefix: str = "") -> Q:
+    """Build the Q filter that decides which owners a shared bookmark may
+    surface to. ``prefix`` lets callers reuse the helper against related
+    querysets (e.g. Tag) by prepending ``"bookmark__"``.
+    """
+    conditions = Q(**{f"{prefix}shared": True}) & Q(
+        **{f"{prefix}owner__profile__enable_sharing": True}
+    )
+    if public_only:
+        conditions |= Q(**{f"{prefix}owner__profile__enable_public_sharing": True})
+    return conditions
+
+
 def query_shared_bookmarks(
     user: User | None,
     profile: UserProfile,
     search: BookmarkSearch,
     public_only: bool,
 ) -> QuerySet:
-    conditions = Q(shared=True) & Q(owner__profile__enable_sharing=True)
-    if public_only:
-        conditions = conditions & Q(owner__profile__enable_public_sharing=True)
-
+    conditions = _shared_bookmark_visibility(public_only)
     return _base_bookmarks_query(user, profile, search).filter(conditions)
 
 
@@ -377,14 +387,7 @@ def get_shared_tags_for_query(
     if not tag_names:
         return Tag.objects.none()
 
-    # Build conditions similar to query_shared_bookmarks
-    conditions = Q(bookmark__shared=True) & Q(
-        bookmark__owner__profile__enable_sharing=True
-    )
-    if public_only:
-        conditions = conditions & Q(
-            bookmark__owner__profile__enable_public_sharing=True
-        )
+    conditions = _shared_bookmark_visibility(public_only, prefix="bookmark__")
     if user is not None:
         conditions = conditions & Q(bookmark__owner=user)
 
