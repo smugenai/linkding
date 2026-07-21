@@ -204,7 +204,7 @@ class TagsIndexViewTestCase(TestCase, BookmarkFactoryMixin, HtmlTestMixin):
 
         response = self.client.get(reverse("linkding:tags.index") + "?sort=count-asc")
 
-        self.assertOrderedRows(response, [tag_none, tag_few, tag_many])
+        self.assertOrderedRows(response, [tag_many, tag_few, tag_none])
 
     def test_sort_by_bookmark_count_descending(self):
         tag_few = self.setup_tag(name="few_bookmarks")
