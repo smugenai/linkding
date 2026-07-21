@@ -35,6 +35,15 @@ from bookmarks.views import access
 logger = logging.getLogger(__name__)
 
 
+def bookmark_count_for_user(user):
+    """Read-only helper: number of bookmarks owned by ``user``.
+
+    Small additive utility on the API routes module; used by callers that need
+    a quick owned-bookmark tally without instantiating a serializer.
+    """
+    return Bookmark.objects.filter(owner=user).count()
+
+
 class BookmarkViewSet(
     viewsets.GenericViewSet,
     mixins.ListModelMixin,
